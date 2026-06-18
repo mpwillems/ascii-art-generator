@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCII Art Generator</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }
+    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 1.5rem; }
+    .row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+    label { font-size: 13px; color: #666; min-width: 52px; }
+    input[type=text], select { flex: 1; padding: 6px 10px; font-size: 15px; font-family: monospace; border: 1px solid #ccc; border-radius: 6px; }
+    input[type=range] { flex: 1; }
+    #output { font-family: monospace; white-space: pre; line-height: 1.1; overflow-x: auto; padding: 1.5rem; background: #f5f5f3; border-radius: 10px; border: 1px solid #e0e0e0; min-height: 120px; font-size: 14px; color: #7F77DD; }
+    .actions { display: flex; gap: 8px; margin-top: 1rem; }
+    button { padding: 6px 14px; font-size: 13px; cursor: pointer; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+    button:hover { background: #f5f5f5; }
+    #copy-btn { margin-left: auto; }
+    #color-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; flex-shrink: 0; background: #7F77DD; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #eee; }
+      input[type=text], select { background: #2a2a2a; border-color: #444; color: #eee; }
+      #output { background: #222; border-color: #333; }
+      button { background: #2a2a2a; border-color: #444; color: #eee; }
+      button:hover { background: #333; }
+    }
+  </style>
+</head>
+<body>
+  <h1>ASCII art generator</h1>
+  <div class="row">
+    <label for="txt">Text</label>
+    <input type="text" id="txt" value="HELLO" maxlength="20" />
+  </div>
+  <div class="row">
+    <label for="font">Font</label>
+    <select id="font">
+      <option value="block">Block</option>
+      <option value="shadow">Shadow</option>
+      <option value="thin">Thin</option>
+      <option value="banner">Banner</option>
+      <option value="bubble">Bubble</option>
+    </select>
+    <div id="color-swatch" title="Pick color"></div>
+    <input type="color" id="color-pick" value="#7F77DD" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" />
+  </div>
+  <div class="row">
+    <label for="size">Size</label>
+    <input type="range" id="size" min="8" max="20" value="14" step="1" />
+    <span style="font-size:13px;min-width:30px;text-align:right" id="size-out">14px</span>
+  </div>
+  <div id="output"></div>
+  <div class="actions">
+    <button id="copy-btn" onclick="copyArt()">Copy</button>
+  </div>
+
+  <script>
+    const FONTS = {
+      block: {
+        A:["  ██  "," ████ ","██  ██","██████","██  ██","██  ██"],
+        B:["█████ ","██  ██","█████ ","█████ ","██  ██","█████ "],
+        C:[" █████","██    ","██    ","██    ","██    "," █████"],
+        D:["████  ","██  ██","██  ██","██  ██","██  ██","████  "],
+        E:["██████","██    ","█████ ","█████ ","██    ","██████"],
+        F:["██████","██    ","█████ ","█████ ","██    ","██    "],
+        G:[" █████","██    ","██    ","██ ███","██  ██"," █████"],
+        H:["██  ██","██  ██","██████","██████","██  ██","██  ██"],
+        I:["██████","  ██  ","  ██  ","  ██  ","  ██  ","██████"],
+        J:["██████","   ██ ","   ██ ","   ██ ","██ ██ "," ████ "],
+        K:["██  ██","██ ██ ","████  ","████  ","██ ██ ","██  ██"],
+        L:["██    ","██    ","██    ","██    ","██    ","██████"],
+        M:["██   ██","███ ███","███████","██ █ ██","██   ██","██   ██"],
+        N:["██   ██","███  ██","████ ██","██ ████","██  ███","██   ██"],
+        O:[" ████ ","██  ██","██  ██","██  ██","██  ██"," ████ "],
+        P:["█████ ","██  ██","██  ██","█████ ","██    ","██    "],
+        Q:[" ████ ","██  ██","██  ██","██ ███","██  ██"," █████"],
+        R:["█████ ","██  ██","██  ██","█████ ","██ ██ ","██  ██"],
+        S:[" █████","██    ","██    "," ████ ","    ██","█████ "],
+        T:["██████","  ██  ","  ██  ","  ██  ","  ██  ","  ██  "],
+        U:["██  ██","██  ██","██  ██","██  ██","██  ██"," ████ "],
+        V:["██  ██","██  ██","██  ██","██  ██"," ████ ","  ██  "],
+        W:["██   ██","██   ██","██ █ ██","███████","███ ███","██   ██"],
+        X:["██  ██"," ████ ","  ██  ","  ██  "," ████ ","██  ██"],
+        Y:["██  ██","██  ██"," ████ ","  ██  ","  ██  ","  ██  "],
+        Z:["██████","   ██ ","  ██  "," ██   ","██    ","██████"],
+        " ":["      ","      ","      ","      ","      ","      "],
+        "0":[" ████ ","██  ██","██ ███","███ ██","██  ██"," ████ "],
+        "1":["  ██  "," ███  ","  ██  ","  ██  ","  ██  ","██████"],
+        "2":[" ████ ","██  ██","   ██ ","  ██  "," ██   ","██████"],
+        "3":[" ████ ","    ██","  ███ ","    ██","    ██"," ████ "],
+        "4":["██  ██","██  ██","██████","    ██","    ██","    ██"],
+        "5":["██████","██    ","█████ ","    ██","    ██","█████ "],
+        "6":[" ████ ","██    ","█████ ","██  ██","██  ██"," ████ "],
+        "7":["██████","   ██ ","  ██  "," ██   ","██    ","██    "],
+        "8":[" ████ ","██  ██"," ████ "," ████ ","██  ██"," ████ "],
+        "9":[" ████ ","██  ██","██  ██"," █████","    ██"," ████ "],
+        "!":["  ██  ","  ██  ","  ██  ","  ██  ","      ","  ██  "],
+        "?":["  ██  "," ████ ","██  ██","   ██ ","      ","  ██  "],
+        ".":["      ","      ","      ","      "," ██   "," ██   "],
+        ",":["      ","      ","      ","      "," ██   ","██    "],
+        "-":["      ","      ","██████","██████","      ","      "],
+        ":":["      "," ██   "," ██   ","      "," ██   "," ██   "],
+      },
+      shadow: {}, thin: {}, banner: {}, bubble: {}
+    };
+
+    for (const [k, v] of Object.entries(FONTS.block)) {
+      FONTS.thin[k] = v.map(row => row.replace(/██/g, '▒▒'));
+      FONTS.shadow[k] = v.map(row => row.replace(/█/g, '▓'));
+      FONTS.banner[k] = [...v, ...v.map(r => r.replace(/█/g, '░'))];
+      FONTS.bubble[k] = v.map(row => row.replace(/██/g, '◉◉'));
+    }
+
+    function render() {
+      const txt = (document.getElementById('txt').value || '').toUpperCase();
+      const fontKey = document.getElementById('font').value;
+      const font = FONTS[fontKey];
+      const rows = 6 + (fontKey === 'banner' ? 6 : 0);
+      const lines = Array.from({ length: rows }, () => '');
+      for (const ch of txt) {
+        const g = font[ch] || font[' '];
+        for (let r = 0; r < rows; r++) lines[r] += (g[r] || '       ') + '  ';
+      }
+      document.getElementById('output').textContent = lines.join('\n');
+    }
+
+    function copyArt() {
+      navigator.clipboard.writeText(document.getElementById('output').textContent).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    }
+
+    const colorPick = document.getElementById('color-pick');
+    const swatch = document.getElementById('color-swatch');
+    swatch.onclick = () => colorPick.click();
+    colorPick.oninput = () => {
+      swatch.style.background = colorPick.value;
+      document.getElementById('output').style.color = colorPick.value;
+    };
+    document.getElementById('size').oninput = function () {
+      document.getElementById('size-out').textContent = this.value + 'px';
+      document.getElementById('output').style.fontSize = this.value + 'px';
+    };
+    document.getElementById('txt').oninput = render;
+    document.getElementById('font').onchange = render;
+    render();
+  </script>
+</body>
+</html>
